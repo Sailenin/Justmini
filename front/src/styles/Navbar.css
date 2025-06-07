@@ -11,7 +11,7 @@
     z-index: 10;
     width: 100%; /* Full width navbar */
     animation: navbarAnimation 1s ease-out;
-    height: 70px; /* Fixed height for the navbar */
+    height: 75px; /* Fixed height for the navbar */
   }
   
   /* Logo Styles */
@@ -21,6 +21,7 @@
     color: white;
     letter-spacing: 2px;
     transition: transform 0.3s ease, color 0.3s ease;
+    margin-top: 5%;
   }
   
   .navbar .logo:hover {

@@ -12,7 +12,7 @@ const UserSchema = new mongoose.Schema({
     type: String,
     trim: true,
     unique: true,
-    sparse: true // Allows optional unique username
+    sparse: true
   },
   email: {
     type: String,

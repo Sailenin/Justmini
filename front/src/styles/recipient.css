@@ -396,12 +396,6 @@ body {
         grid-template-columns: 1fr;
     }
 }
-/* Default avatar styling */
-.avatar-container {
-  position: relative;
-  width: 60px;
-  height: 60px;
-}
 
 .donor-avatar, .profile-img {
   width: 100%;

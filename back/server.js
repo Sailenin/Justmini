@@ -7,7 +7,6 @@ const jwt = require('jsonwebtoken');
 
 const app = express();
 
-// Enhanced CORS configuration
 app.use(cors({
     origin: 'http://localhost:3000',
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
@@ -17,7 +16,6 @@ app.use(cors({
 
 app.use(express.json());
 
-// ✅ Database connection (corrected)
 mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/organDonationDB', {
     useNewUrlParser: true,
     useUnifiedTopology: true
@@ -28,12 +26,11 @@ mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/organDona
         process.exit(1);
     });
 
-// Schemas
 const UserSchema = new mongoose.Schema({
     fullName: { type: String, required: true },
     email: { type: String, required: true, unique: true },
     password: { type: String, required: true },
-    userType: { type: String, enum: ['donor', 'recipient'], required: true },
+    userType: { type: String, enum: ['donor', 'recipient', 'admin'], required: true },
     phoneNumber: { type: String },
     bloodType: { type: String },
     organs: { type: String },
@@ -80,7 +77,6 @@ const DonationSchema = new mongoose.Schema({
 const User = mongoose.model('User', UserSchema);
 const Donation = mongoose.model('Donation', DonationSchema);
 
-// Auth Middleware
 const auth = async (req, res, next) => {
     try {
         const authHeader = req.header('Authorization');
@@ -114,7 +110,32 @@ const auth = async (req, res, next) => {
     }
 };
 
-// Register
+const authorizeAdmin = (req, res, next) => {
+    if (!req.user || req.user.userType !== 'admin') {
+        return res.status(403).json({ success: false, error: 'Access denied: Admin privileges required' });
+    }
+    next();
+};
+
+app.get('/hash-my-password/:password', async (req, res) => {
+    try {
+        const passwordToHash = req.params.password;
+        const hashedPassword = await bcrypt.hash(passwordToHash, 10);
+        res.status(200).send(`
+            <h1>Hashed Password Generated</h1>
+            <p><strong>Original Password:</strong> ${passwordToHash}</p>
+            <p><strong>Hashed Password:</strong> <code style="word-break: break-all;">${hashedPassword}</code></p>
+            <p style="color: red; font-weight: bold;">
+                IMPORTANT: Copy this hashed password and insert it into your MongoDB for an admin user.
+                Then, IMMEDIATELY REMOVE this "/hash-my-password/:password" route from server.js and restart your server!
+            </p>
+        `);
+    } catch (error) {
+        console.error('Error hashing password:', error);
+        res.status(500).send('Error hashing password.');
+    }
+});
+
 app.post('/api/auth/register', async (req, res) => {
     try {
         const { fullName, email, password, userType, phoneNumber, bloodType, organs, neededBloodType, neededOrgan } = req.body;
@@ -158,7 +179,6 @@ app.post('/api/auth/register', async (req, res) => {
     }
 });
 
-// Login
 app.post('/api/auth/login', async (req, res) => {
     try {
         const { email, password } = req.body;
@@ -192,7 +212,6 @@ app.post('/api/auth/login', async (req, res) => {
     }
 });
 
-// Donor Info
 app.get('/api/donor/info', auth, async (req, res) => {
     try {
         if (req.user.userType !== 'donor') {
@@ -204,7 +223,7 @@ app.get('/api/donor/info', auth, async (req, res) => {
             .populate({
                 path: 'donations',
                 match: { donor: req.user._id },
-                select: 'donationType details date status hospital doctor urgency -_id' //Include hospital doctor and urgency
+                select: 'donationType details date status hospital doctor urgency -_id'
             });
 
         if (!donor) {
@@ -218,7 +237,6 @@ app.get('/api/donor/info', auth, async (req, res) => {
     }
 });
 
-// Recipient Info
 app.get('/api/recipient/info', auth, async (req, res) => {
     try {
         if (req.user.userType !== 'recipient') {
@@ -229,8 +247,8 @@ app.get('/api/recipient/info', auth, async (req, res) => {
             .select('-password')
             .populate({
                 path: 'donations',
-                match: { recipient: req.user._id },  // changed to recipient
-                select: 'donationType details date status hospital doctor urgency -_id' // Include hospital, doctor, urgency
+                match: { recipient: req.user._id },
+                select: 'donationType details date status hospital doctor urgency -_id'
             });
 
         if (!recipient) {
@@ -244,7 +262,6 @@ app.get('/api/recipient/info', auth, async (req, res) => {
     }
 });
 
-// Get Donors (Blood & Organ)
 app.get('/api/recipient/donors', auth, async (req, res) => {
     try {
         if (req.user.userType !== 'recipient') {
@@ -254,12 +271,12 @@ app.get('/api/recipient/donors', auth, async (req, res) => {
         const bloodDonors = await User.find({
             userType: 'donor',
             bloodType: { $exists: true, $ne: '' }
-        }).select('fullName email phoneNumber bloodType _id').lean(); // Include _id
+        }).select('fullName email phoneNumber bloodType _id').lean();
 
         const organDonors = await User.find({
             userType: 'donor',
             organs: { $exists: true, $ne: '' }
-        }).select('fullName email organs _id').lean();  // Include _id
+        }).select('fullName email organs _id').lean();
 
         res.json({
             success: true,
@@ -271,7 +288,6 @@ app.get('/api/recipient/donors', auth, async (req, res) => {
     }
 });
 
-// Request Donation
 app.post('/api/recipient/request', auth, async (req, res) => {
     try {
         if (req.user.userType !== 'recipient') {
@@ -286,7 +302,7 @@ app.post('/api/recipient/request', auth, async (req, res) => {
 
         const donor = await User.findById(donorId);
         if (!donor || donor.userType !== 'donor') {
-            return res.status(404).json({ success: false, error: 'Donor not found' });
+            return res.status(404).json({ success: false, error: 'Donor not found or not a donor user' });
         }
 
         const donation = new Donation({
@@ -312,7 +328,6 @@ app.post('/api/recipient/request', auth, async (req, res) => {
     }
 });
 
-// Recipient Profile Update
 app.put('/api/recipient/profile', auth, async (req, res) => {
     try {
         if (req.user.userType !== 'recipient') {
@@ -343,7 +358,7 @@ app.put('/api/recipient/profile', auth, async (req, res) => {
         res.status(500).json({ success: false, error: 'Server error while updating profile' });
     }
 });
-// Recipient Dashboard Info and Available Donors
+
 app.get('/api/recipient/dashboard', auth, async (req, res) => {
     try {
         if (req.user.userType !== 'recipient') {
@@ -377,8 +392,43 @@ app.get('/api/recipient/dashboard', auth, async (req, res) => {
     }
 });
 
-// Start Server
+app.get('/api/admin/users', auth, authorizeAdmin, async (req, res) => {
+    try {
+        const users = await User.find({ userType: { $ne: 'admin' } })
+            .select('-password')
+            .sort({ createdAt: -1 });
+        res.json({ success: true, data: users });
+    } catch (err) {
+        console.error('Admin get all users error:', err);
+        res.status(500).json({ success: false, error: 'Server error while fetching all users' });
+    }
+});
+
+app.get('/api/admin/donors', auth, authorizeAdmin, async (req, res) => {
+    try {
+        const donors = await User.find({ userType: 'donor' })
+            .select('-password')
+            .sort({ createdAt: -1 });
+        res.json({ success: true, data: donors });
+    } catch (err) {
+        console.error('Admin get donors error:', err);
+        res.status(500).json({ success: false, error: 'Server error while fetching donors' });
+    }
+});
+
+app.get('/api/admin/recipients', auth, authorizeAdmin, async (req, res) => {
+    try {
+        const recipients = await User.find({ userType: 'recipient' })
+            .select('-password')
+            .sort({ createdAt: -1 });
+        res.json({ success: true, data: recipients });
+    } catch (err) {
+        console.error('Admin get recipients error:', err);
+        res.status(500).json({ success: false, error: 'Server error while fetching recipients' });
+    }
+});
+
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`);
-});     
+});

@@ -13,12 +13,17 @@ const Login = () => {
     password: ''
   });
   const [loading, setLoading] = useState(false);
+  const [serverMessage, setServerMessage] = useState('');
 
   useEffect(() => {
+    const adminToken = localStorage.getItem('adminToken');
+    const adminUserType = localStorage.getItem('adminUserType');
     const token = sessionStorage.getItem('authToken');
     const userType = sessionStorage.getItem('userType');
 
-    if (token && userType) {
+    if (adminToken && adminUserType === 'admin') {
+      navigate('/admin');
+    } else if (token && userType) {
       navigate(userType === 'donor' ? '/donor-dashboard' : '/recipient-dashboard');
     }
   }, [navigate]);
@@ -47,6 +52,7 @@ const Login = () => {
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
+    setServerMessage('');
 
     if (name === 'email') validateEmail(value);
     if (name === 'password') validatePassword(value);
@@ -77,22 +83,27 @@ const Login = () => {
       const data = await response.json();
 
       if (!response.ok) {
-        // Handle specific error message for pending approval
         if (data.message === 'Account pending admin approval') {
-          return navigate('/pending-approval');
+          return navigate('/pendingapproval');
         }
         throw new Error(data.errors?.[0]?.msg || data.message || 'Login failed');
       }
 
-      sessionStorage.setItem('authToken', data.token);
-      sessionStorage.setItem('userType', data.userType);
-      sessionStorage.setItem('userId', data.userId);
-      sessionStorage.setItem('userName', data.userName);
-
-      navigate(data.userType === 'donor' ? '/donor-dashboard' : '/recipient-dashboard');
+      if (data.userType === 'admin') {
+        localStorage.setItem('adminToken', data.token);
+        localStorage.setItem('adminUserType', data.userType);
+        localStorage.setItem('userName', data.userName);
+        navigate('/admin');
+      } else {
+        sessionStorage.setItem('authToken', data.token);
+        sessionStorage.setItem('userType', data.userType);
+        sessionStorage.setItem('userId', data.userId);
+        sessionStorage.setItem('userName', data.userName);
+        navigate(data.userType === 'donor' ? '/donor-dashboard' : '/recipient-dashboard');
+      }
     } catch (error) {
       console.error('Login error:', error);
-      alert(error.message || 'An error occurred during login. Please try again.');
+      setServerMessage(error.message || 'Login failed. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -138,6 +149,7 @@ const Login = () => {
             <a href="/forgot-password">Forgot Password?</a>
           </div>
 
+          {serverMessage && <div className="error-message">{serverMessage}</div>}
           <button type="submit" className="login-button" disabled={loading}>
             {loading ? (
               <>

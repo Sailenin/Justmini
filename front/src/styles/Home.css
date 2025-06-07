@@ -2,7 +2,7 @@
     background-image: url("https://www.w3schools.com/w3images/lights.jpg");
     background-size: cover;
     background-position: center;
-    height: 100vh;
+    height: 90vh;
     color: white;
     position: relative;
     overflow: hidden;
@@ -15,6 +15,7 @@
     text-align: center;
     font-family: 'Arial', sans-serif;
     font-weight: 300;
+    
     
     
   }
