@@ -4,6 +4,11 @@
 
 ---
 
+A sample React project built to demonstrate development skills.  
+It is a simple platform concept designed to connect people willing to donate blood or organs with recipients who need them.
+This project is created for learning and demonstration purposes only and does not represent a real medical or donation service.
+
+---
 ## Key Features
 - Donor and recipient registration (with basic verification)
 - Search donors by blood type, organ type, location, availability
@@ -17,9 +22,6 @@
 | Styling  | CSS        |
 | Tools    | NPM        |
 
-A sample React project built to demonstrate development skills.  
-It is a simple platform concept designed to connect people willing to donate blood or organs with recipients who need them.
-This project is created for learning and demonstration purposes only and does not represent a real medical or donation service.
 
 ### **Clone the repository**
 ```bash
