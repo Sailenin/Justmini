@@ -10,3 +10,22 @@
 - Admin dashboard to moderate listings and requests
 - Responsive UI (mobile-first)
 
+## 🛠 Tech Stack
+| Category | Technology |
+|----------|------------|
+| Frontend | React      |
+| Styling  | CSS        |
+| Tools    | NPM        |
+
+A sample React project built to demonstrate development skills.  
+It is a simple platform concept designed to connect people willing to donate blood or organs with recipients who need them.
+This project is created for learning and demonstration purposes only and does not represent a real medical or donation service.
+
+### **Clone the repository**
+```bash
+git clone https://github.com/<your-username>/justmini.git
+cd justmini
+```
+![React](https://img.shields.io/badge/React-18-blue)
+![Status](https://img.shields.io/badge/Project-Sample-green)
+![Purpose](https://img.shields.io/badge/Education-Only-yellow)
